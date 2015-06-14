@@ -60,7 +60,7 @@
 		if (elm && elm.nodeType === 1) {
 			viewBox = elm.getAttribute('viewBox');
 
-			_.forEach(elm.childNodes, function (node) {
+			lodash.forEach(elm.childNodes, function (node) {
 				// If child node is not a text node.
 				if (node.nodeType !== 3) {
 					inner += xmlSerializer.serializeToString(node);
@@ -130,7 +130,7 @@
 	 * @param {Object} values
 	 */
 	rhIconConfig.prototype.set = function (values) {
-		_.merge(this.config, values);
+		lodash.merge(this.config, values);
 	};
 
 	/**
@@ -165,7 +165,7 @@
 			$elms = jQuery('[rh-icon]', context);
 		}
 
-		_.forEach($elms, function (elm) {
+		lodash.forEach($elms, function (elm) {
 			var $elm = jQuery(elm);
 			var attrs = $elm.data() || {};
 
