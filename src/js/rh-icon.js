@@ -180,7 +180,7 @@
 			var hoverColor = attrs.hoverColor;
 			var title = attrs.title;
 
-			$elm.attr('class', prefix + ' ' + prefix + '-' + id + (hoverId || hoverColor ? ' has-hover' : ''));
+			$elm.addClass(prefix + ' ' + prefix + '-' + id + (hoverId || hoverColor ? ' has-hover' : ''));
 			$elm.attr('title', title);
 			$elm.attr('aria-hidden', 'true');
 			$elm.attr('draggable', 'false');
