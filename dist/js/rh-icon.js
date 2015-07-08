@@ -43,13 +43,9 @@
 	 * @param {String} elmId DOM element ID
 	 * @returns {Object}
 	 */
-	function getSvgSymbol (elmId) {
+	function getSvgSymbol(elmId) {
 		if (elmId in svgSymbols) {
 			return svgSymbols[elmId];
-		}
-
-		if (!xmlSerializer) {
-			throw new Error('XMLSerializer is not instantiated.');
 		}
 
 		var viewBox;
@@ -60,12 +56,14 @@
 		if (elm && elm.nodeType === 1) {
 			viewBox = elm.getAttribute('viewBox');
 
-			lodash.forEach(elm.childNodes, function (node) {
-				// If child node is not a text node.
-				if (node.nodeType !== 3) {
-					inner += xmlSerializer.serializeToString(node);
-				}
-			});
+			if (flags.serialize) {
+				lodash.forEach(elm.childNodes, function (node) {
+					// If child node is not a text node.
+					if (node.nodeType !== 3) {
+						inner += xmlSerializer.serializeToString(node);
+					}
+				});
+			}
 		}
 
 		svgSymbols[elmId] = {
@@ -81,7 +79,7 @@
 	 * @param {String} color
 	 * @returns {Boolean|String}
 	 */
-	function getFill (color) {
+	function getFill(color) {
 		var config = rhea.iconConfig.get();
 		if (color && color in config.colors) {
 			return config.colors[color];
@@ -94,7 +92,7 @@
 	 * @param {Object} opts
 	 * @returns {String}
 	 */
-	function renderPng (opts) {
+	function renderPng(opts) {
 		var config = rhea.iconConfig.get();
 		return '<img class="' + opts.className + '" src="' + config.pngUrl + config.prefix + '-' + opts.id + (opts.color ? '-' + opts.color : '') + '.png" alt="" />';
 	}
@@ -104,24 +102,34 @@
 	 * @param {Object} opts
 	 * @returns {String}
 	 */
-	function renderSvg (opts) {
+	function renderSvg(opts) {
 		var config = rhea.iconConfig.get();
-		var symbol = getSvgSymbol(config.prefix + '-' + opts.id);
+		var elmId = config.prefix + '-' + opts.id;
+		var symbol = getSvgSymbol(elmId);
 		var viewBox = symbol.viewBox || '0 0 ' + opts.width + ' ' + opts.height;
-		return '<svg class="' + opts.className + '"' + (opts.fill ? ' fill="' + opts.fill + '"' : '') + ' viewBox="' + viewBox + '" preserveAspectRatio="xMidYMid meet" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' + symbol.inner + '</svg>';
+		var inner = '';
+
+		if (config.svg === icon.USE) {
+			inner = '<use xlink:href="#' + elmId + '"></use>';
+		}
+		else if (flags.serialize) {
+			inner = symbol.inner;
+		}
+
+		return '<svg class="' + opts.className + '"' + (opts.fill ? ' fill="' + opts.fill + '"' : '') + ' viewBox="' + viewBox + '" preserveAspectRatio="xMidYMid meet" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' + inner + '</svg>';
 	}
 
 	/**
 	 *
 	 * @returns {rhIconConfig}
 	 */
-	function rhIconConfig () {
+	function rhIconConfig() {
 		this.config = {
 			colors: {}, // {Object} Colors of default and hover icons, if any. Key: color, value: hexadecimal or named value (compatible with <svg> `fill` attribute)
 			prefix: 'icon', // {String}
 			pngUrl: '', // {String} URL of directory with PNG fallback images
 			size: 128, // {Number} Width and height of SVG (viewBox)
-			svg: undefined // {Boolean} Override SVG feature detection (can be used for testing fallback images)
+			svg: undefined // {Boolean|String} Set to boolean to override SVG feature detection (can be used for testing fallback images), or `use` to use <use> element
 		};
 	}
 
@@ -145,8 +153,8 @@
 	 *
 	 * @returns {rhIcon}
 	 */
-	function rhIcon () {
-
+	function rhIcon() {
+		this.USE = 'use';
 	}
 
 	/**
@@ -155,7 +163,22 @@
 	 */
 	rhIcon.prototype.apply = function (context) {
 		var config = rhea.iconConfig.get();
-		var useSvg = (config.svg === true || (config.svg === undefined && flags.serialize && flags.svg && flags.inlinesvg));
+		var useSvg;
+
+		if (config.svg === false || config.svg === true) {
+			useSvg = config.svg;
+		}
+		else if (flags.svg && flags.inlinesvg) {
+			if (config.svg === this.USE || flags.serialize) {
+				useSvg = true;
+			}
+			else {
+				useSvg = false;
+			}
+		}
+		else {
+			useSvg = false;
+		}
 
 		var $elms;
 		if (context instanceof jQuery && context.is('[rh-icon]')) {
@@ -232,7 +255,10 @@
 		});
 	};
 
-	rhea.icon = new rhIcon();
-	rhea.iconConfig = new rhIconConfig();
+	var icon = new rhIcon();
+	var iconConfig = new rhIconConfig();
+
+	rhea.icon = icon;
+	rhea.iconConfig = iconConfig;
 
 })(window, window.rhea);
